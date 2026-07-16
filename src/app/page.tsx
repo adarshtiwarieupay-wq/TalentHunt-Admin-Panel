@@ -6,6 +6,8 @@ interface CandidateResult {
   id: string;
   name: string;
   email: string;
+  contactNo: string;
+  country: string;
   score: number;
   status: string;
 }
@@ -42,9 +44,9 @@ export default function AdminLeaderboard() {
     // Sort by score descending
     const sortedData = [...leaderboard].sort((a, b) => b.score - a.score);
     
-    const headers = ["Rank,Name,Email,Status,Score"];
+    const headers = ["Rank,Name,Email,Contact No,Country,Status,Score"];
     const rows = sortedData.map((candidate, index) => 
-      `${index + 1},"${candidate.name}","${candidate.email}","${candidate.status}",${candidate.score}`
+      `${index + 1},"${candidate.name}","${candidate.email}","${candidate.contactNo || ''}","${candidate.country || ''}","${candidate.status}",${candidate.score}`
     );
     
     const csvContent = "data:text/csv;charset=utf-8," + headers.concat(rows).join("\n");
@@ -100,6 +102,8 @@ export default function AdminLeaderboard() {
                   <th className="px-6 py-5 font-bold">Rank</th>
                   <th className="px-6 py-5 font-bold">Candidate Name</th>
                   <th className="px-6 py-5 font-bold">Email Address</th>
+                  <th className="px-6 py-5 font-bold">Contact No</th>
+                  <th className="px-6 py-5 font-bold">Country</th>
                   <th className="px-6 py-5 font-bold">Status</th>
                   <th className="px-6 py-5 font-bold text-right">Score</th>
                 </tr>
@@ -107,13 +111,13 @@ export default function AdminLeaderboard() {
               <tbody className="divide-y divide-gray-100">
                 {loading && leaderboard.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500 font-bold text-lg">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 font-bold text-lg">
                       Loading Leaderboard...
                     </td>
                   </tr>
                 ) : leaderboard.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500 font-bold text-lg">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 font-bold text-lg">
                       No candidates have started the test yet.
                     </td>
                   </tr>
@@ -139,6 +143,12 @@ export default function AdminLeaderboard() {
                       </td>
                       <td className="px-6 py-5 whitespace-nowrap">
                         <div className="text-gray-500 text-sm">{candidate.email}</div>
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="text-gray-500 text-sm">{candidate.contactNo || '-'}</div>
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="text-gray-500 text-sm">{candidate.country || '-'}</div>
                       </td>
                       <td className="px-6 py-5 whitespace-nowrap">
                         <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border

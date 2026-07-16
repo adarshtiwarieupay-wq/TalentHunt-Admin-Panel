@@ -26,6 +26,8 @@ export async function GET() {
         id: candidate._id.toString(),
         name: candidate.name,
         email: candidate.email,
+        contactNo: candidate.contactNo,
+        country: candidate.country,
         score: session?.score ?? 0,
         status,
         startTime: session?.startTime,

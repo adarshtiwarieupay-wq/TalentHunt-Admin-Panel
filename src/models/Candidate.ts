@@ -3,6 +3,8 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface ICandidate extends Document {
   name: string;
   email: string;
+  contactNo: string;
+  country: string;
   hasStarted: boolean;
   hasCompleted: boolean;
 }
@@ -10,6 +12,8 @@ export interface ICandidate extends Document {
 const CandidateSchema: Schema = new Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
+  contactNo: { type: String, required: true },
+  country: { type: String, required: true },
   hasStarted: { type: Boolean, default: false },
   hasCompleted: { type: Boolean, default: false },
 });
