@@ -10,6 +10,27 @@ interface CandidateResult {
   country: string;
   score: number;
   status: string;
+  startTime?: string;
+  submissionTime?: string;
+}
+
+function formatDuration(start?: string, end?: string) {
+  if (!start || !end) return "-";
+  const durationMs = new Date(end).getTime() - new Date(start).getTime();
+  if (durationMs < 0) return "-";
+  const minutes = Math.floor(durationMs / 60000);
+  const seconds = Math.floor((durationMs % 60000) / 1000);
+  return `${minutes}m ${seconds}s`;
+}
+
+function formatDateTime(dateStr?: string) {
+  if (!dateStr) return "-";
+  return new Date(dateStr).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 export default function AdminLeaderboard() {
@@ -84,12 +105,20 @@ export default function AdminLeaderboard() {
   const exportToCSV = () => {
     if (leaderboard.length === 0) return;
 
-    // Sort by score descending
-    const sortedData = [...leaderboard].sort((a, b) => b.score - a.score);
+    // Sort by score descending and then by time taken
+    const sortedData = [...leaderboard].sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (a.submissionTime && b.submissionTime && a.startTime && b.startTime) {
+        const aDuration = new Date(a.submissionTime).getTime() - new Date(a.startTime).getTime();
+        const bDuration = new Date(b.submissionTime).getTime() - new Date(b.startTime).getTime();
+        return aDuration - bDuration;
+      }
+      return 0;
+    });
     
-    const headers = ["Rank,Name,Email,Contact No,Country,Status,Score"];
+    const headers = ["Rank,Name,Email,Contact No,Country,Start Time,End Time,Time Taken,Status,Score"];
     const rows = sortedData.map((candidate, index) => 
-      `${index + 1},"${candidate.name}","${candidate.email}","${candidate.contactNo || ''}","${candidate.country || ''}","${candidate.status}",${candidate.score}`
+      `${index + 1},"${candidate.name}","${candidate.email}","${candidate.contactNo || ''}","${candidate.country || ''}","${formatDateTime(candidate.startTime)}","${formatDateTime(candidate.submissionTime)}","${formatDuration(candidate.startTime, candidate.submissionTime)}","${candidate.status}",${candidate.score}`
     );
     
     const csvContent = "data:text/csv;charset=utf-8," + headers.concat(rows).join("\n");
@@ -106,7 +135,7 @@ export default function AdminLeaderboard() {
     <main className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 relative">
 
 
-      <div className="max-w-6xl w-full">
+      <div className="max-w-[1400px] w-full">
         <div className="text-center mb-10">
           <div className="flex justify-center mb-6">
             <img src="/comapnyLogo/FullLogo.png" alt="Company Logo" className="h-16 object-contain" />
@@ -150,26 +179,29 @@ export default function AdminLeaderboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-xs tracking-wider">
-                  <th className="px-6 py-5 font-bold">Rank</th>
-                  <th className="px-6 py-5 font-bold">Candidate Name</th>
-                  <th className="px-6 py-5 font-bold">Email Address</th>
-                  <th className="px-6 py-5 font-bold">Contact No</th>
-                  <th className="px-6 py-5 font-bold">Country</th>
-                  <th className="px-6 py-5 font-bold">Status</th>
-                  <th className="px-6 py-5 font-bold text-right">Score</th>
+                <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-[11px] xl:text-xs tracking-wider">
+                  <th className="px-3 py-4 font-bold">Rank</th>
+                  <th className="px-3 py-4 font-bold">Name</th>
+                  <th className="px-3 py-4 font-bold">Email</th>
+                  <th className="px-3 py-4 font-bold">Contact</th>
+                  <th className="px-3 py-4 font-bold">Country</th>
+                  <th className="px-3 py-4 font-bold">Start Time</th>
+                  <th className="px-3 py-4 font-bold">End Time</th>
+                  <th className="px-3 py-4 font-bold">Time</th>
+                  <th className="px-3 py-4 font-bold">Status</th>
+                  <th className="px-3 py-4 font-bold text-right">Score</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading && leaderboard.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 font-bold text-lg">
+                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500 font-bold text-lg">
                       Loading Leaderboard...
                     </td>
                   </tr>
                 ) : leaderboard.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 font-bold text-lg">
+                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500 font-bold text-lg">
                       No candidates have started the test yet.
                     </td>
                   </tr>
@@ -179,7 +211,7 @@ export default function AdminLeaderboard() {
                       key={candidate.id} 
                       className={`hover:bg-blue-50/30 transition-colors ${idx < 3 ? 'bg-gradient-to-r from-blue-50/50 to-transparent' : ''}`}
                     >
-                      <td className="px-6 py-5 whitespace-nowrap">
+                      <td className="px-3 py-4 whitespace-nowrap">
                         <div className={`
                           flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm
                           ${idx === 0 ? 'bg-yellow-100 text-yellow-700 border border-yellow-300' : 
@@ -190,19 +222,28 @@ export default function AdminLeaderboard() {
                           #{idx + 1}
                         </div>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
+                      <td className="px-3 py-4 whitespace-nowrap">
                         <div className="font-bold text-gray-900">{candidate.name}</div>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
+                      <td className="px-3 py-4 whitespace-nowrap">
                         <div className="text-gray-500 text-sm">{candidate.email}</div>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
+                      <td className="px-3 py-4 whitespace-nowrap">
                         <div className="text-gray-500 text-sm">{candidate.contactNo || '-'}</div>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
+                      <td className="px-3 py-4 whitespace-nowrap">
                         <div className="text-gray-500 text-sm">{candidate.country || '-'}</div>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
+                      <td className="px-3 py-4 whitespace-nowrap">
+                        <div className="text-gray-500 text-xs">{formatDateTime(candidate.startTime)}</div>
+                      </td>
+                      <td className="px-3 py-4 whitespace-nowrap">
+                        <div className="text-gray-500 text-xs">{formatDateTime(candidate.submissionTime)}</div>
+                      </td>
+                      <td className="px-3 py-4 whitespace-nowrap">
+                        <div className="text-gray-500 text-sm font-medium">{formatDuration(candidate.startTime, candidate.submissionTime)}</div>
+                      </td>
+                      <td className="px-3 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border
                           ${candidate.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-200' : 
                             candidate.status === 'In Progress' ? 'bg-blue-50 text-[#0055A4] border-blue-200' : 
@@ -211,7 +252,7 @@ export default function AdminLeaderboard() {
                           {candidate.status}
                         </span>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap text-right">
+                      <td className="px-3 py-4 whitespace-nowrap text-right">
                         <div className="font-black text-xl text-[#0055A4]">
                           {candidate.score} <span className="text-sm font-normal text-gray-400">/ 40</span>
                         </div>
