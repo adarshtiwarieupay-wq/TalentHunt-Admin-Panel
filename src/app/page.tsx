@@ -17,6 +17,14 @@ export default function AdminLeaderboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Add Email Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [addingEmail, setAddingEmail] = useState(false);
+  const [addEmailError, setAddEmailError] = useState("");
+  const [addEmailSuccess, setAddEmailSuccess] = useState(false);
 
   const fetchLeaderboard = async () => {
     try {
@@ -33,10 +41,45 @@ export default function AdminLeaderboard() {
   };
 
   useEffect(() => {
+    setIsMounted(true);
     fetchLeaderboard();
     const interval = setInterval(fetchLeaderboard, 10000); // Auto-refresh every 10 seconds
     return () => clearInterval(interval);
   }, []);
+
+  const handleAddEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddingEmail(true);
+    setAddEmailError("");
+    setAddEmailSuccess(false);
+
+    try {
+      const res = await fetch("/api/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newEmail }),
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to add email");
+      }
+      
+      setAddEmailSuccess(true);
+      setNewEmail("");
+      
+      // Close modal after 1.5 seconds on success
+      setTimeout(() => {
+        setShowAddModal(false);
+        setAddEmailSuccess(false);
+      }, 1500);
+      
+    } catch (err: any) {
+      setAddEmailError(err.message);
+    } finally {
+      setAddingEmail(false);
+    }
+  };
 
   const exportToCSV = () => {
     if (leaderboard.length === 0) return;
@@ -71,10 +114,19 @@ export default function AdminLeaderboard() {
           <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2">European Pay <span className="text-[#0055A4]">Talent</span> Hunt</h1>
           <h2 className="text-xl md:text-2xl font-bold text-[#EF4135] uppercase tracking-widest">Admin Leaderboard</h2>
           <p className="text-gray-500 mt-4 text-sm font-mono">
-            Auto-refreshing every 10s • Last updated: {lastUpdated.toLocaleTimeString()}
+            Auto-refreshing every 10s • Last updated: {isMounted ? lastUpdated.toLocaleTimeString() : "Loading..."}
           </p>
           
-          <div className="mt-6 flex justify-center">
+          <div className="mt-6 flex justify-center gap-4">
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="bg-white border-2 border-[#0055A4] text-[#0055A4] hover:bg-blue-50 font-bold py-2 px-6 rounded-full shadow transition-colors flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Authorized Email
+            </button>
             <button 
               onClick={exportToCSV}
               disabled={leaderboard.length === 0}
@@ -172,6 +224,71 @@ export default function AdminLeaderboard() {
           </div>
         </div>
       </div>
+
+      {/* Add Email Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+            <button 
+              onClick={() => setShowAddModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Add Authorized Email</h3>
+            
+            <form onSubmit={handleAddEmail} className="space-y-4">
+              <div>
+                <label htmlFor="newEmail" className="block text-sm font-bold text-gray-700 mb-2">Student Email Address</label>
+                <input
+                  id="newEmail"
+                  type="email"
+                  required
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#0055A4] focus:ring-2 focus:ring-[#0055A4]/20 outline-none transition-all text-gray-900"
+                  placeholder="student@example.com"
+                />
+              </div>
+
+              {addEmailError && (
+                <div className="text-[#EF4135] text-sm font-bold bg-red-50 p-3 rounded-lg border border-red-100">
+                  {addEmailError}
+                </div>
+              )}
+
+              {addEmailSuccess && (
+                <div className="text-green-700 text-sm font-bold bg-green-50 p-3 rounded-lg border border-green-200 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Email authorized successfully!
+                </div>
+              )}
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addingEmail}
+                  className="flex-1 py-3 bg-[#0055A4] hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-md"
+                >
+                  {addingEmail ? "Adding..." : "Add Email"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
