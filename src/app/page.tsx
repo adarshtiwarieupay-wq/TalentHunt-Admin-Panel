@@ -1,139 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import leaderboardData from "../data/leaderboard.json";
+import qualifiersData from "../data/qualifiers.json";
 
-interface CandidateResult {
-  id: string;
-  name: string;
-  email: string;
-  contactNo: string;
-  country: string;
-  score: number;
-  status: string;
-  startTime?: string;
-  submissionTime?: string;
-}
-
-function formatDuration(start?: string, end?: string) {
-  if (!start || !end) return "-";
-  const durationMs = new Date(end).getTime() - new Date(start).getTime();
-  if (durationMs < 0) return "-";
-  const minutes = Math.floor(durationMs / 60000);
-  const seconds = Math.floor((durationMs % 60000) / 1000);
-  return `${minutes}m ${seconds}s`;
+function formatDuration(timeTakenStr?: string) {
+  if (!timeTakenStr) return "-";
+  return timeTakenStr;
 }
 
 function formatDateTime(dateStr?: string) {
   if (!dateStr) return "-";
-  return new Date(dateStr).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  return dateStr;
 }
 
 export default function AdminLeaderboard() {
-  const [leaderboard, setLeaderboard] = useState<CandidateResult[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [activeTab, setActiveTab] = useState<"leaderboard" | "qualifiers">("leaderboard");
   const [isMounted, setIsMounted] = useState(false);
-
-  // Add Email Modal State
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newEmail, setNewEmail] = useState("");
-  const [addingEmail, setAddingEmail] = useState(false);
-  const [addEmailError, setAddEmailError] = useState("");
-  const [addEmailSuccess, setAddEmailSuccess] = useState(false);
-
-  const fetchLeaderboard = async () => {
-    try {
-      const res = await fetch("/api/leaderboard");
-      if (!res.ok) throw new Error("Failed to fetch data");
-      const data = await res.json();
-      setLeaderboard(data.leaderboard);
-      setLastUpdated(new Date());
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     setIsMounted(true);
-    fetchLeaderboard();
-    const interval = setInterval(fetchLeaderboard, 10000); // Auto-refresh every 10 seconds
-    return () => clearInterval(interval);
   }, []);
 
-  const handleAddEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAddingEmail(true);
-    setAddEmailError("");
-    setAddEmailSuccess(false);
+  const currentData = activeTab === "leaderboard" ? leaderboardData : qualifiersData;
 
-    try {
-      const res = await fetch("/api/emails", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: newEmail }),
-      });
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to add email");
-      }
-      
-      setAddEmailSuccess(true);
-      setNewEmail("");
-      
-      // Close modal after 1.5 seconds on success
-      setTimeout(() => {
-        setShowAddModal(false);
-        setAddEmailSuccess(false);
-      }, 1500);
-      
-    } catch (err: any) {
-      setAddEmailError(err.message);
-    } finally {
-      setAddingEmail(false);
-    }
-  };
 
-  const exportToCSV = () => {
-    if (leaderboard.length === 0) return;
-
-    // Sort by score descending and then by time taken
-    const sortedData = [...leaderboard].sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      if (a.submissionTime && b.submissionTime && a.startTime && b.startTime) {
-        const aDuration = new Date(a.submissionTime).getTime() - new Date(a.startTime).getTime();
-        const bDuration = new Date(b.submissionTime).getTime() - new Date(b.startTime).getTime();
-        return aDuration - bDuration;
-      }
-      return 0;
-    });
-    
-    const headers = ["Rank,Name,Email,Contact No,Country,Start Time,End Time,Time Taken,Status,Score"];
-    const rows = sortedData.map((candidate, index) => 
-      `${index + 1},"${candidate.name}","${candidate.email}","${candidate.contactNo || ''}","${candidate.country || ''}","${formatDateTime(candidate.startTime)}","${formatDateTime(candidate.submissionTime)}","${formatDuration(candidate.startTime, candidate.submissionTime)}","${candidate.status}",${candidate.score}`
-    );
-    
-    const csvContent = "data:text/csv;charset=utf-8," + headers.concat(rows).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "leaderboard_export.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  if (!isMounted) return null; // Avoid hydration mismatch
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 relative">
-
 
       <div className="max-w-[1400px] w-full">
         <div className="text-center mb-10">
@@ -141,39 +36,26 @@ export default function AdminLeaderboard() {
             <img src="/comapnyLogo/FullLogo.png" alt="Company Logo" className="h-16 object-contain" />
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2">European Pay <span className="text-[#0055A4]">Talent</span> Hunt</h1>
-          <h2 className="text-xl md:text-2xl font-bold text-[#EF4135] uppercase tracking-widest">Admin Leaderboard</h2>
-          <p className="text-gray-500 mt-4 text-sm font-mono">
-            Auto-refreshing every 10s • Last updated: {isMounted ? lastUpdated.toLocaleTimeString() : "Loading..."}
-          </p>
+          <h2 className="text-xl md:text-2xl font-bold text-[#EF4135] uppercase tracking-widest">Results Dashboard</h2>
           
-          <div className="mt-6 flex justify-center gap-4">
+          <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 border-b border-gray-200 pb-4">
             <button 
-              onClick={() => setShowAddModal(true)}
-              className="bg-white border-2 border-[#0055A4] text-[#0055A4] hover:bg-blue-50 font-bold py-2 px-6 rounded-full shadow transition-colors flex items-center gap-2"
+              onClick={() => setActiveTab("leaderboard")}
+              className={`font-bold py-2 px-6 rounded-full shadow-sm transition-colors flex items-center gap-2 border-2 
+                ${activeTab === "leaderboard" ? 'bg-[#0055A4] text-white border-[#0055A4]' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Authorized Email
+              Overall Leaderboard
             </button>
             <button 
-              onClick={exportToCSV}
-              disabled={leaderboard.length === 0}
-              className="bg-[#0055A4] hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-full shadow transition-colors flex items-center gap-2"
+              onClick={() => setActiveTab("qualifiers")}
+              className={`font-bold py-2 px-6 rounded-full shadow-sm transition-colors flex items-center gap-2 border-2
+                ${activeTab === "qualifiers" ? 'bg-[#EF4135] text-white border-[#EF4135]' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Export to CSV
+              Round 1 Qualifiers
             </button>
           </div>
-        </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-[#EF4135] px-4 py-3 rounded-xl mb-6 text-center font-bold shadow-sm">
-            {error}
-          </div>
-        )}
+        </div>
 
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
@@ -182,36 +64,29 @@ export default function AdminLeaderboard() {
                 <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase text-[11px] xl:text-xs tracking-wider">
                   <th className="px-3 py-4 font-bold">Rank</th>
                   <th className="px-3 py-4 font-bold">Name</th>
-                  <th className="px-3 py-4 font-bold">Email</th>
-                  <th className="px-3 py-4 font-bold">Contact</th>
                   <th className="px-3 py-4 font-bold">Country</th>
                   <th className="px-3 py-4 font-bold">Start Time</th>
                   <th className="px-3 py-4 font-bold">End Time</th>
                   <th className="px-3 py-4 font-bold">Time</th>
                   <th className="px-3 py-4 font-bold">Status</th>
+                  <th className="px-3 py-4 font-bold">Fields/Niche</th>
                   <th className="px-3 py-4 font-bold text-right">Score</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {loading && leaderboard.length === 0 ? (
+                {currentData.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500 font-bold text-lg">
-                      Loading Leaderboard...
-                    </td>
-                  </tr>
-                ) : leaderboard.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500 font-bold text-lg">
-                      No candidates have started the test yet.
+                    <td colSpan={9} className="px-6 py-12 text-center text-gray-500 font-bold text-lg">
+                      No data available.
                     </td>
                   </tr>
                 ) : (
-                  leaderboard.map((candidate, idx) => (
+                  currentData.map((candidate: any, idx: number) => (
                     <tr 
-                      key={candidate.id} 
+                      key={idx} 
                       className={`hover:bg-blue-50/30 transition-colors ${idx < 3 ? 'bg-gradient-to-r from-blue-50/50 to-transparent' : ''}`}
                     >
-                      <td className="px-3 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
                         <div className={`
                           flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm
                           ${idx === 0 ? 'bg-yellow-100 text-yellow-700 border border-yellow-300' : 
@@ -219,42 +94,39 @@ export default function AdminLeaderboard() {
                             idx === 2 ? 'bg-orange-100 text-orange-800 border border-orange-300' : 
                             'text-gray-500'}
                         `}>
-                          #{idx + 1}
+                          #{candidate.Rank || idx + 1}
                         </div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <div className="font-bold text-gray-900">{candidate.name}</div>
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
+                        <div className="font-bold text-gray-900">{candidate.Name}</div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <div className="text-gray-500 text-sm">{candidate.email}</div>
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
+                        <div className="text-gray-500 text-sm">{candidate.Country || '-'}</div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <div className="text-gray-500 text-sm">{candidate.contactNo || '-'}</div>
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
+                        <div className="text-gray-500 text-xs">{formatDateTime(candidate['Start Time'])}</div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <div className="text-gray-500 text-sm">{candidate.country || '-'}</div>
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
+                        <div className="text-gray-500 text-xs">{formatDateTime(candidate['End Time'])}</div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <div className="text-gray-500 text-xs">{formatDateTime(candidate.startTime)}</div>
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
+                        <div className="text-gray-500 text-sm font-medium">{formatDuration(candidate['Time Taken'])}</div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <div className="text-gray-500 text-xs">{formatDateTime(candidate.submissionTime)}</div>
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <div className="text-gray-500 text-sm font-medium">{formatDuration(candidate.startTime, candidate.submissionTime)}</div>
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
                         <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border
-                          ${candidate.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-200' : 
-                            candidate.status === 'In Progress' ? 'bg-blue-50 text-[#0055A4] border-blue-200' : 
+                          ${candidate.Status === 'Completed' ? 'bg-green-50 text-green-700 border-green-200' : 
+                            candidate.Status === 'In Progress' ? 'bg-blue-50 text-[#0055A4] border-blue-200' : 
                             'bg-gray-100 text-gray-600 border-gray-200'}
                         `}>
-                          {candidate.status}
+                          {candidate.Status}
                         </span>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-right">
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base max-w-[200px] break-words" title={candidate['Fields/Niche']}>
+                        <div className="text-gray-500 text-sm break-words">{candidate['Fields/Niche'] || '-'}</div>
+                      </td>
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base text-right">
                         <div className="font-black text-xl text-[#0055A4]">
-                          {candidate.score} <span className="text-sm font-normal text-gray-400">/ 40</span>
+                          {candidate.Score}
                         </div>
                       </td>
                     </tr>
@@ -265,71 +137,6 @@ export default function AdminLeaderboard() {
           </div>
         </div>
       </div>
-
-      {/* Add Email Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
-            <button 
-              onClick={() => setShowAddModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Add Authorized Email</h3>
-            
-            <form onSubmit={handleAddEmail} className="space-y-4">
-              <div>
-                <label htmlFor="newEmail" className="block text-sm font-bold text-gray-700 mb-2">Student Email Address</label>
-                <input
-                  id="newEmail"
-                  type="email"
-                  required
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#0055A4] focus:ring-2 focus:ring-[#0055A4]/20 outline-none transition-all text-gray-900"
-                  placeholder="student@example.com"
-                />
-              </div>
-
-              {addEmailError && (
-                <div className="text-[#EF4135] text-sm font-bold bg-red-50 p-3 rounded-lg border border-red-100">
-                  {addEmailError}
-                </div>
-              )}
-
-              {addEmailSuccess && (
-                <div className="text-green-700 text-sm font-bold bg-green-50 p-3 rounded-lg border border-green-200 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Email authorized successfully!
-                </div>
-              )}
-
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={addingEmail}
-                  className="flex-1 py-3 bg-[#0055A4] hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-md"
-                >
-                  {addingEmail ? "Adding..." : "Add Email"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
