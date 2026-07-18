@@ -86,7 +86,7 @@ export default function AdminLeaderboard() {
                       key={idx} 
                       className={`hover:bg-blue-50/30 transition-colors ${idx < 3 ? 'bg-gradient-to-r from-blue-50/50 to-transparent' : ''}`}
                     >
-                      <td className="px-3 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
                         <div className={`
                           flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm
                           ${idx === 0 ? 'bg-yellow-100 text-yellow-700 border border-yellow-300' : 
@@ -97,22 +97,22 @@ export default function AdminLeaderboard() {
                           #{candidate.Rank || idx + 1}
                         </div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
                         <div className="font-bold text-gray-900">{candidate.Name}</div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
                         <div className="text-gray-500 text-sm">{candidate.Country || '-'}</div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
                         <div className="text-gray-500 text-xs">{formatDateTime(candidate['Start Time'])}</div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
                         <div className="text-gray-500 text-xs">{formatDateTime(candidate['End Time'])}</div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
                         <div className="text-gray-500 text-sm font-medium">{formatDuration(candidate['Time Taken'])}</div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base">
                         <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border
                           ${candidate.Status === 'Completed' ? 'bg-green-50 text-green-700 border-green-200' : 
                             candidate.Status === 'In Progress' ? 'bg-blue-50 text-[#0055A4] border-blue-200' : 
@@ -121,10 +121,10 @@ export default function AdminLeaderboard() {
                           {candidate.Status}
                         </span>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap max-w-[200px] truncate" title={candidate['Fields/Niche']}>
-                        <div className="text-gray-500 text-sm truncate">{candidate['Fields/Niche'] || '-'}</div>
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base max-w-[200px] break-words" title={candidate['Fields/Niche']}>
+                        <div className="text-gray-500 text-sm break-words">{candidate['Fields/Niche'] || '-'}</div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-right">
+                      <td className="px-3 py-4 break-words whitespace-normal text-sm sm:text-base text-right">
                         <div className="font-black text-xl text-[#0055A4]">
                           {candidate.Score}
                         </div>
