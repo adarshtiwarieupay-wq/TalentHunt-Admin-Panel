@@ -24,24 +24,6 @@ export default function AdminLeaderboard() {
 
   const currentData = activeTab === "leaderboard" ? leaderboardData : qualifiersData;
 
-  const exportToCSV = () => {
-    if (currentData.length === 0) return;
-    
-    // We export the sanitized data (without email/contact no)
-    const headers = ["Rank,Name,Country,Start Time,End Time,Time Taken,Status,Score,Fields/Niche"];
-    const rows = currentData.map((candidate: any, index: number) => 
-      `${candidate.Rank || index + 1},"${candidate.Name}","${candidate.Country || ''}","${candidate['Start Time'] || ''}","${candidate['End Time'] || ''}","${candidate['Time Taken'] || ''}","${candidate.Status || ''}",${candidate.Score || ''},"${candidate['Fields/Niche'] || ''}"`
-    );
-    
-    const csvContent = "data:text/csv;charset=utf-8," + headers.concat(rows).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${activeTab}_export.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   if (!isMounted) return null; // Avoid hydration mismatch
 
@@ -56,7 +38,7 @@ export default function AdminLeaderboard() {
           <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2">European Pay <span className="text-[#0055A4]">Talent</span> Hunt</h1>
           <h2 className="text-xl md:text-2xl font-bold text-[#EF4135] uppercase tracking-widest">Results Dashboard</h2>
           
-          <div className="mt-8 flex justify-center gap-4 border-b border-gray-200 pb-4">
+          <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 border-b border-gray-200 pb-4">
             <button 
               onClick={() => setActiveTab("leaderboard")}
               className={`font-bold py-2 px-6 rounded-full shadow-sm transition-colors flex items-center gap-2 border-2 
@@ -73,18 +55,6 @@ export default function AdminLeaderboard() {
             </button>
           </div>
 
-          <div className="mt-6 flex justify-center gap-4">
-            <button 
-              onClick={exportToCSV}
-              disabled={currentData.length === 0}
-              className="bg-[#0055A4] hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-full shadow transition-colors flex items-center gap-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Export Current View to CSV
-            </button>
-          </div>
         </div>
 
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
